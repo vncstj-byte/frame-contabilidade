@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { authenticateRequest, requireAdmin } from "@/lib/api-auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { audit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
+
+  const rl = rateLimit(auth.userId, 120);
+  if (!rl.ok) return NextResponse.json({ error: "Muitas requisições" }, { status: 429 });
 
   const supabase = await createClient();
   const { searchParams } = request.nextUrl;
@@ -76,6 +81,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: "Erro ao criar lançamento" }, { status: 500 });
+  audit({ userId: auth.userId, userEmail: auth.profile.email, action: "create", resource: "financial_entries", resourceId: data?.id, details: { client_id, category }, ip: request.headers.get("x-forwarded-for") ?? undefined });
   return NextResponse.json({ data }, { status: 201 });
 }
 
@@ -99,6 +105,7 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: "Erro ao atualizar" }, { status: 500 });
+  audit({ userId: auth.userId, userEmail: auth.profile.email, action: "update", resource: "financial_entries", resourceId: id, ip: request.headers.get("x-forwarded-for") ?? undefined });
   return NextResponse.json({ data });
 }
 
@@ -115,5 +122,6 @@ export async function DELETE(request: NextRequest) {
   const { error } = await supabase.from("financial_entries").delete().eq("id", id);
 
   if (error) return NextResponse.json({ error: "Erro ao deletar" }, { status: 500 });
+  audit({ userId: auth.userId, userEmail: auth.profile.email, action: "delete", resource: "financial_entries", resourceId: id, ip: request.headers.get("x-forwarded-for") ?? undefined });
   return NextResponse.json({ ok: true });
 }

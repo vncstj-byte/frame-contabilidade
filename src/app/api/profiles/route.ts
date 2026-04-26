@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { authenticateRequest, requireAdmin } from "@/lib/api-auth";
+import { audit } from "@/lib/audit";
 
 export async function GET() {
   const auth = await authenticateRequest();
@@ -37,5 +38,6 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: "Erro ao atualizar" }, { status: 500 });
+  audit({ userId: auth.userId, userEmail: auth.profile.email, action: "update", resource: "profiles", resourceId: id, details: updates, ip: request.headers.get("x-forwarded-for") ?? undefined });
   return NextResponse.json({ data });
 }
