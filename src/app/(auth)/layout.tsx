@@ -42,8 +42,8 @@ export default function AuthLayout({
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground animate-pulse text-sm">Carregando...</p>
       </div>
     );
   }

@@ -110,7 +110,7 @@ export default function ClientsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
   }
@@ -266,7 +266,7 @@ export default function ClientsPage() {
             <TableBody>
               {clients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Nenhum cliente cadastrado.
                   </TableCell>
                 </TableRow>

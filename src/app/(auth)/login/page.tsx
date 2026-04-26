@@ -4,17 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -63,63 +53,71 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">FRAME Finance</CardTitle>
-          <CardDescription>Acesse sua conta</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleLogin}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden" style={{ background: "linear-gradient(135deg, hsl(220 40% 6%) 0%, hsl(30 20% 8%) 100%)" }}>
+      <div className="w-full max-w-sm relative z-10 border border-primary/40 rounded-2xl p-10">
+        <div className="flex flex-col items-center mb-12">
+          <Image src="/logo-frame.png" alt="FRAME" width={320} height={115} className="object-contain" priority />
+          <p className="text-muted-foreground/20 text-[11px] tracking-[0.2em] uppercase -mt-10">Contabilidade para Advogados</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
+              {error}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleLogin}
-            >
-              Entrar com Google
-            </Button>
-            <p className="text-sm text-gray-500">
-              Não tem conta?{" "}
-              <Link href="/register" className="text-blue-600 hover:underline">
-                Cadastre-se
-              </Link>
-            </p>
-          </CardFooter>
+          )}
+
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-[11px] text-muted-foreground/60 font-semibold tracking-[0.15em] uppercase block">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full bg-transparent border border-primary/40 rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/20"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="password" className="text-[11px] text-muted-foreground/60 font-semibold tracking-[0.15em] uppercase block">Senha</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-transparent border border-primary/40 rounded-xl px-4 py-3 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/20"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary/85 text-primary-foreground font-semibold py-3 rounded-xl transition-all disabled:opacity-50 mt-4 shadow-lg shadow-primary/25"
+          >
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full border border-border/30 text-muted-foreground/70 font-medium py-3 rounded-xl hover:bg-white/5 hover:text-foreground transition-all text-sm"
+          >
+            Entrar com Google
+          </button>
+
+          <p className="text-sm text-muted-foreground/50 text-center pt-2">
+            Não tem conta?{" "}
+            <Link href="/register" className="text-primary hover:text-primary/80 font-medium transition-colors">
+              Cadastre-se
+            </Link>
+          </p>
         </form>
-      </Card>
+
+      </div>
     </div>
   );
 }
