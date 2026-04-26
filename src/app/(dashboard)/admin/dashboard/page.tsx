@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../../layout";
 import { parsePeriodMonths, formatCurrency, formatPercent, DRE_GABARITO } from "@/lib/constants";
 import { calculateDRE, getExpenseBreakdown, calculateMonthlyData, getStackedCostData } from "@/lib/dreCalculator";
@@ -17,21 +16,22 @@ export default function DashboardPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [allEntries, setAllEntries] = useState<FinancialEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       const months = parsePeriodMonths(selectedPeriod);
+      const params = new URLSearchParams({ months: months.join(",") });
+      if (selectedClient !== "all") params.set("client_id", selectedClient);
 
-      let query = supabase.from("financial_entries").select("*").in("reference_month", months);
-      if (selectedClient !== "all") {
-        query = query.eq("client_id", selectedClient);
-      }
-      const { data } = await query;
+      const [res, allRes] = await Promise.all([
+        fetch(`/api/financial-entries?${params}`),
+        fetch("/api/financial-entries?all=true"),
+      ]);
+
+      const { data } = await res.json();
       setEntries(data ?? []);
-
-      const { data: all } = await supabase.from("financial_entries").select("*").order("reference_month");
+      const { data: all } = await allRes.json();
       setAllEntries(all ?? []);
 
       setLoading(false);

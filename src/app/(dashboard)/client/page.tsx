@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../layout";
 import { parsePeriodMonths, formatCurrency, formatPercent, DRE_GABARITO } from "@/lib/constants";
 import { calculateDRE } from "@/lib/dreCalculator";
@@ -13,22 +12,15 @@ export default function ClientDashboard() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [clientInfo, setClientInfo] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       const months = parsePeriodMonths(selectedPeriod);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const [entriesRes, clientRes] = await Promise.all([
-        supabase.from("financial_entries").select("*").eq("client_id", user.id).in("reference_month", months).order("entry_date", { ascending: false }),
-        supabase.from("clients").select("*").eq("user_id", user.id).single(),
-      ]);
-
-      setEntries(entriesRes.data ?? []);
-      setClientInfo(clientRes.data);
+      const params = new URLSearchParams({ months: months.join(",") });
+      const res = await fetch(`/api/financial-entries?${params}`);
+      const { data } = await res.json();
+      setEntries(data ?? []);
       setLoading(false);
     }
     loadData();
@@ -51,7 +43,6 @@ export default function ClientDashboard() {
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground">Meu Financeiro</h2>
-        {clientInfo && <p className="text-muted-foreground text-sm">{clientInfo.nome_empresa}</p>}
       </div>
 
       {/* KPIs */}

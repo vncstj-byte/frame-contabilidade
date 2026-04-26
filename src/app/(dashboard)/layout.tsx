@@ -3,6 +3,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
+import type { FinancialEntry } from "@/types/database";
 import Link from "next/link";
 import Image from "next/image";
 import type { Profile, Client } from "@/types/database";
@@ -46,16 +47,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/login"); return; }
-
-      const { data: p } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const res = await fetch("/api/profile");
+      if (!res.ok) { router.replace("/login"); return; }
+      const { data: p } = await res.json();
       if (!p) { router.replace("/login"); return; }
       setProfile(p);
 
       if (p.role === "admin" || p.role === "gestor") {
-        const { data: c } = await supabase.from("clients").select("*").order("nome_empresa");
-        setClients(c ?? []);
+        const clientsRes = await fetch("/api/clients");
+        if (clientsRes.ok) {
+          const { data: c } = await clientsRes.json();
+          setClients(c ?? []);
+        }
       }
       setLoading(false);
     }

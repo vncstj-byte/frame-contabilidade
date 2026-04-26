@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../../layout";
 import { parsePeriodMonths, formatCurrency, formatPercent, formatYearMonth, DRE_GABARITO } from "@/lib/constants";
 import { calculateDRE } from "@/lib/dreCalculator";
@@ -12,17 +11,15 @@ export default function DREPage() {
   const { selectedPeriod, selectedClient } = useApp();
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       const months = parsePeriodMonths(selectedPeriod);
-      let query = supabase.from("financial_entries").select("*").in("reference_month", months);
-      if (selectedClient !== "all") {
-        query = query.eq("client_id", selectedClient);
-      }
-      const { data } = await query;
+      const params = new URLSearchParams({ months: months.join(",") });
+      if (selectedClient !== "all") params.set("client_id", selectedClient);
+      const res = await fetch(`/api/financial-entries?${params}`);
+      const { data } = await res.json();
       setEntries(data ?? []);
       setLoading(false);
     }

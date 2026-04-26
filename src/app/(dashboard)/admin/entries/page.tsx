@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../../layout";
 import { parsePeriodMonths, formatCurrency, CATEGORY_OPTIONS, getCurrentYearMonth } from "@/lib/constants";
 import type { FinancialEntry, EntryType, CategoryGroup } from "@/types/database";
@@ -33,7 +32,6 @@ export default function EntriesPage() {
   const [filterType, setFilterType] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const supabase = createClient();
 
   const [form, setForm] = useState({
     ...emptyForm,
@@ -53,11 +51,10 @@ export default function EntriesPage() {
   async function loadEntries() {
     setLoading(true);
     const months = parsePeriodMonths(selectedPeriod);
-    let query = supabase.from("financial_entries").select("*").in("reference_month", months).order("entry_date", { ascending: false });
-    if (selectedClient !== "all") {
-      query = query.eq("client_id", selectedClient);
-    }
-    const { data } = await query;
+    const params = new URLSearchParams({ months: months.join(",") });
+    if (selectedClient !== "all") params.set("client_id", selectedClient);
+    const res = await fetch(`/api/financial-entries?${params}`);
+    const { data } = await res.json();
     setEntries(data ?? []);
     setLoading(false);
   }
@@ -101,10 +98,17 @@ export default function EntriesPage() {
     };
 
     if (editingId) {
-      await supabase.from("financial_entries").update(payload).eq("id", editingId);
+      await fetch("/api/financial-entries", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, ...payload }),
+      });
     } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("financial_entries").insert({ ...payload, created_by: user?.id });
+      await fetch("/api/financial-entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
     }
 
     resetForm();
@@ -113,7 +117,7 @@ export default function EntriesPage() {
   }
 
   async function handleDelete(id: string) {
-    await supabase.from("financial_entries").delete().eq("id", id);
+    await fetch(`/api/financial-entries?id=${id}`, { method: "DELETE" });
     setConfirmDeleteId(null);
     loadEntries();
   }

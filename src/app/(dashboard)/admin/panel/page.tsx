@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../../layout";
 import { formatCurrency, parsePeriodMonths, getCurrentYearMonth, getGroupedPeriodOptions, formatYearMonth } from "@/lib/constants";
 import type { Profile, Client, FinancialEntry } from "@/types/database";
@@ -31,7 +30,6 @@ export default function AdminPanelPage() {
   const [clientForm, setClientForm] = useState({ ...emptyClientForm });
   const [confirmDeleteClient, setConfirmDeleteClient] = useState<string | null>(null);
 
-  const supabase = createClient();
   const year = new Date().getFullYear();
   const periodOptions = getGroupedPeriodOptions(year);
 
@@ -42,16 +40,21 @@ export default function AdminPanelPage() {
   async function loadData() {
     setLoading(true);
     const months = parsePeriodMonths(selectedPeriod);
+    const params = new URLSearchParams({ months: months.join(",") });
 
     const [usersRes, entriesRes, clientsRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("full_name"),
-      supabase.from("financial_entries").select("*").in("reference_month", months),
-      supabase.from("clients").select("*").order("nome_empresa"),
+      fetch("/api/profiles"),
+      fetch(`/api/financial-entries?${params}`),
+      fetch("/api/clients"),
     ]);
 
-    setUsers(usersRes.data ?? []);
-    setEntries(entriesRes.data ?? []);
-    setAllClients(clientsRes.data ?? []);
+    const { data: usersData } = await usersRes.json();
+    const { data: entriesData } = await entriesRes.json();
+    const { data: clientsData } = await clientsRes.json();
+
+    setUsers(usersData ?? []);
+    setEntries(entriesData ?? []);
+    setAllClients(clientsData ?? []);
     setLoading(false);
   }
 
@@ -61,13 +64,21 @@ export default function AdminPanelPage() {
   const resultado = totalReceita - totalDespesa;
 
   async function handleChangeRole(userId: string, newRole: string) {
-    await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+    await fetch("/api/profiles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: userId, role: newRole }),
+    });
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole as Profile["role"] } : u));
   }
 
   async function handleToggleStatus(userId: string, currentStatus: string) {
     const newStatus = currentStatus === "ativo" ? "inativo" : "ativo";
-    await supabase.from("profiles").update({ status: newStatus }).eq("id", userId);
+    await fetch("/api/profiles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: userId, status: newStatus }),
+    });
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus as Profile["status"] } : u));
   }
 
@@ -131,9 +142,17 @@ export default function AdminPanelPage() {
     };
 
     if (editingClientId) {
-      await supabase.from("clients").update(payload).eq("id", editingClientId);
+      await fetch("/api/clients", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingClientId, ...payload }),
+      });
     } else {
-      await supabase.from("clients").insert(payload);
+      await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
     }
 
     setClientFormOpen(false);
@@ -143,7 +162,7 @@ export default function AdminPanelPage() {
   }
 
   async function handleDeleteClient(id: string) {
-    await supabase.from("clients").delete().eq("id", id);
+    await fetch(`/api/clients?id=${id}`, { method: "DELETE" });
     setConfirmDeleteClient(null);
     loadData();
   }
