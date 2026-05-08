@@ -111,31 +111,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-card hover:text-foreground transition-colors">
               Contrato
             </button>
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => { setUserOpen(!userOpen); setPeriodOpen(false); setClientOpen(false); }}
-                className="text-[13px] text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-              {userOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-2xl z-50">
-                  <div className="p-2">
-                    <div className="px-3 py-2 border-b border-border/50 mb-1">
-                      <p className="text-[13px] text-foreground font-medium truncate">{profile.full_name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{profile.email}</p>
-                    </div>
-                    <a
-                      href="/api/auth/logout"
-                      className="w-full flex items-center gap-2 text-[13px] text-destructive px-3 py-2 rounded-lg hover:bg-destructive/10 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sair
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
+            <a
+              href="/api/auth/logout"
+              className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair
+            </a>
           </div>
         </div>
 
