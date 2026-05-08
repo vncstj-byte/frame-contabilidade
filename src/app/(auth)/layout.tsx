@@ -14,6 +14,8 @@ export default function AuthLayout({
   const supabase = createClient();
 
   useEffect(() => {
+    const timeout = setTimeout(() => setReady(true), 3000);
+
     async function checkAuth() {
       try {
         const {
@@ -27,6 +29,7 @@ export default function AuthLayout({
             .eq("id", user.id)
             .single();
 
+          clearTimeout(timeout);
           if (profile?.role === "cliente") {
             router.replace("/client");
           } else {
@@ -38,10 +41,12 @@ export default function AuthLayout({
         // auth check failed — show login form anyway
       }
 
+      clearTimeout(timeout);
       setReady(true);
     }
 
     checkAuth();
+    return () => clearTimeout(timeout);
   }, []);
 
   if (!ready) {
