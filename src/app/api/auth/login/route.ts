@@ -17,11 +17,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!email || !password) {
-    return NextResponse.redirect(new URL("/login?error=missing", request.url));
+    return NextResponse.redirect(new URL("/login?error=missing", request.url), 303);
   }
 
   const redirectResponse = (path: string) => {
-    const res = NextResponse.redirect(new URL(path, request.url));
+    const res = NextResponse.redirect(new URL(path, request.url), 303);
     cookiesToSet.forEach(({ name, value, options }) => {
       res.cookies.set(name, value, options);
     });
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return NextResponse.redirect(new URL("/login?error=invalid", request.url));
+    return NextResponse.redirect(new URL("/login?error=invalid", request.url), 303);
   }
 
   const { data: { user } } = await supabase.auth.getUser();
