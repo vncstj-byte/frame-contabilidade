@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; success?: string }> }) {
+  const { error, success } = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden" style={{ background: "linear-gradient(135deg, hsl(220 40% 6%) 0%, hsl(30 20% 8%) 100%)" }}>
@@ -16,6 +16,18 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {error && (
             <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
               {error === "invalid" ? "Email ou senha inválidos." : "Preencha todos os campos."}
+            </div>
+          )}
+
+          {success === "password-reset" && (
+            <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-lg text-sm">
+              Senha atualizada com sucesso. Faça login.
+            </div>
+          )}
+
+          {success === "reset-sent" && (
+            <div className="bg-emerald-500/10 text-emerald-400 p-3 rounded-lg text-sm">
+              Link de recuperação enviado para o seu email.
             </div>
           )}
 
@@ -50,12 +62,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             Entrar
           </button>
 
-          <p className="text-sm text-muted-foreground/50 text-center pt-2">
-            Não tem conta?{" "}
-            <Link href="/register" className="text-primary hover:text-primary/80 font-medium transition-colors">
-              Cadastre-se
+          <div className="text-center pt-2 space-y-2">
+            <Link href="/forgot-password" className="text-sm text-muted-foreground/50 hover:text-primary transition-colors block">
+              Esqueceu a senha?
             </Link>
-          </p>
+          </div>
         </form>
       </div>
     </div>

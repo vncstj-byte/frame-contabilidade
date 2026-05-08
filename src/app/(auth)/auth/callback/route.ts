@@ -4,15 +4,19 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const next = searchParams.get("next");
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (next === "/reset-password") {
+        const token = code;
+        return NextResponse.redirect(`${origin}/reset-password?token=${token}`);
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
         const { data: profile } = await supabase
@@ -21,8 +25,7 @@ export async function GET(request: Request) {
           .eq("id", user.id)
           .single();
 
-        const redirectPath =
-          profile?.role === "cliente" ? "/client" : "/admin/dashboard";
+        const redirectPath = profile?.role === "cliente" ? "/client" : "/admin/dashboard";
         return NextResponse.redirect(`${origin}${redirectPath}`);
       }
     }
