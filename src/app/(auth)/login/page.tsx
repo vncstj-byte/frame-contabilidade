@@ -19,27 +19,39 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError("Email ou senha inválidos.");
+      if (error) {
+        setError("Email ou senha inválidos.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Erro ao obter sessão.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role === "cliente") {
+        window.location.href = "/client";
+      } else {
+        window.location.href = "/admin/dashboard";
+      }
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
       setLoading(false);
-      return;
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("email", email)
-      .single();
-
-    if (profile?.role === "cliente") {
-      window.location.href = "/client";
-    } else {
-      window.location.href = "/admin/dashboard";
     }
   }
 
