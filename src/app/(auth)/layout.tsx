@@ -15,23 +15,27 @@ export default function AuthLayout({
 
   useEffect(() => {
     async function checkAuth() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
 
-        if (profile?.role === "cliente") {
-          router.replace("/client");
-        } else {
-          router.replace("/admin/dashboard");
+          if (profile?.role === "cliente") {
+            router.replace("/client");
+          } else {
+            router.replace("/admin/dashboard");
+          }
+          return;
         }
-        return;
+      } catch {
+        // auth check failed — show login form anyway
       }
 
       setReady(true);
