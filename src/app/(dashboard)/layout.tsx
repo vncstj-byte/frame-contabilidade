@@ -127,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                     <button
                       onClick={async () => {
-                        await supabase.auth.signOut();
+                        await fetch("/api/auth/logout", { method: "POST", redirect: "manual" });
                         router.replace("/login");
                       }}
                       className="w-full flex items-center gap-2 text-[13px] text-destructive px-3 py-2 rounded-lg hover:bg-destructive/10 transition-colors"
