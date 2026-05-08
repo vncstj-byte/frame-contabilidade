@@ -125,16 +125,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <p className="text-[13px] text-foreground font-medium truncate">{profile.full_name}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{profile.email}</p>
                     </div>
-                    <button
-                      onClick={async () => {
-                        await fetch("/api/auth/logout", { method: "POST", redirect: "manual" });
-                        router.replace("/login");
-                      }}
+                    <a
+                      href="/api/auth/logout"
                       className="w-full flex items-center gap-2 text-[13px] text-destructive px-3 py-2 rounded-lg hover:bg-destructive/10 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
                       Sair
-                    </button>
+                    </a>
                   </div>
                 </div>
               )}
