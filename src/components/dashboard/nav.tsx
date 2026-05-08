@@ -36,7 +36,7 @@ export function DashboardNav({
   const isAdmin = userRole === "admin" || userRole === "gestor";
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST", redirect: "manual" });
     router.push("/login");
   }
 
