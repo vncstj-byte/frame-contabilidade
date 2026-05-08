@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC_ROUTES = ["/login", "/register", "/auth/callback", "/api/auth/login", "/api/debug-auth"];
 
@@ -11,7 +10,6 @@ export async function middleware(request: NextRequest) {
   }
 
   const authCookie = request.cookies.get("sb-ejgpwrejtqrquegwrqbq-auth-token");
-
   if (!authCookie?.value) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -26,7 +24,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (!session?.access_token) {
+  const accessToken = session?.access_token;
+  const userId = session?.user?.id;
+  if (!accessToken || !userId) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -35,38 +35,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  let supabaseResponse = NextResponse.next({ request });
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const profileRes = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=role,status`,
     {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${accessToken}`,
       },
     }
   );
 
-  const userId = session.user?.id;
-  if (!userId) {
+  if (!profileRes.ok) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, status")
-    .eq("id", userId)
-    .single();
+  const profiles = await profileRes.json();
+  const profile = profiles?.[0];
 
   if (!profile || profile.status === "inativo") {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -80,7 +64,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/dashboard", request.url));
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
