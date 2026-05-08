@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -11,8 +9,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const supabase = createClient();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -20,48 +16,25 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) {
-        setError("Email ou senha inválidos.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Erro ao fazer login");
         setLoading(false);
         return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Erro ao obter sessão.");
-        setLoading(false);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role === "cliente") {
-        window.location.href = "/client";
-      } else {
-        window.location.href = "/admin/dashboard";
-      }
+      window.location.href = data.redirect || "/admin/dashboard";
     } catch {
       setError("Erro de conexão. Tente novamente.");
       setLoading(false);
     }
-  }
-
-  async function handleGoogleLogin() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
   }
 
   return (
@@ -113,14 +86,6 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
 
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full border border-border/30 text-muted-foreground/70 font-medium py-3 rounded-xl hover:bg-white/5 hover:text-foreground transition-all text-sm"
-          >
-            Entrar com Google
-          </button>
-
           <p className="text-sm text-muted-foreground/50 text-center pt-2">
             Não tem conta?{" "}
             <Link href="/register" className="text-primary hover:text-primary/80 font-medium transition-colors">
@@ -128,7 +93,6 @@ export default function LoginPage() {
             </Link>
           </p>
         </form>
-
       </div>
     </div>
   );
