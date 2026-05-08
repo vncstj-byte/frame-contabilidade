@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { FileUp, FileText, X } from "lucide-react";
 import type { Client, ContractType } from "@/types/database";
 import { formatCNPJ, formatCPF, formatCEP } from "@/lib/constants";
 
@@ -67,6 +68,8 @@ export default function ClientsPage() {
   const [saving, setSaving] = useState(false);
   const supabase = createClient();
   const [form, setForm] = useState(emptyForm);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadClients();
@@ -85,7 +88,7 @@ export default function ClientsPage() {
     e.preventDefault();
     setSaving(true);
 
-    const { error } = await supabase.from("clients").insert({
+    const clientData = {
       nome_empresa: form.nome_empresa,
       cnpj: form.cnpj.replace(/\D/g, "") || null,
       rua: form.rua || null,
@@ -102,11 +105,27 @@ export default function ClientsPage() {
       prazo_contrato: form.prazo_contrato || null,
       data_inicio_contrato: form.data_inicio_contrato || null,
       data_termino_contrato: form.data_termino_contrato || null,
-    });
+      contrato_url: null as string | null,
+    };
+
+    if (contractFile) {
+      const ext = contractFile.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("contracts")
+        .upload(fileName, contractFile);
+
+      if (!uploadError && uploadData) {
+        clientData.contrato_url = uploadData.path;
+      }
+    }
+
+    const { error } = await supabase.from("clients").insert(clientData);
 
     if (!error) {
       setDialogOpen(false);
       setForm(emptyForm);
+      setContractFile(null);
       loadClients();
     }
     setSaving(false);
@@ -290,6 +309,39 @@ export default function ClientsPage() {
                 </div>
               </div>
 
+              <div className="border-t border-border/40 pt-4">
+                <p className="text-xs text-muted-foreground font-semibold tracking-wider uppercase mb-3">Anexo do Contrato</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  className="hidden"
+                  onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
+                />
+                {contractFile ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/30 px-4 py-3">
+                    <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <span className="text-sm truncate flex-1">{contractFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setContractFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/60 py-6 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors"
+                  >
+                    <FileUp className="h-5 w-5" />
+                    Clique para anexar o contrato (PDF, DOC, imagem)
+                  </button>
+                )}
+              </div>
+
               <Button type="submit" className="w-full" disabled={saving}>
                 {saving ? "Salvando..." : "Salvar"}
               </Button>
@@ -309,12 +361,13 @@ export default function ClientsPage() {
                 <TableHead>Cidade/UF</TableHead>
                 <TableHead>Contrato</TableHead>
                 <TableHead>Valor</TableHead>
+                <TableHead>Arquivo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     Nenhum cliente cadastrado.
                   </TableCell>
                 </TableRow>
@@ -336,6 +389,25 @@ export default function ClientsPage() {
                       {client.valor_contrato
                         ? client.valor_contrato.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
                         : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {client.contrato_url ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const { data } = await supabase.storage
+                              .from("contracts")
+                              .createSignedUrl(client.contrato_url!, 60);
+                            if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                          }}
+                          className="text-primary hover:underline text-xs flex items-center gap-1"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          Ver
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

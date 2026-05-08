@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendInviteEmail } from "@/lib/email";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -14,31 +17,68 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") {
+  if (profile?.role !== "admin" && profile?.role !== "gestor") {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
-  const { email, role } = await request.json();
+  const { email, role, full_name } = await request.json();
   if (!email || !role) {
     return NextResponse.json({ error: "Email e role são obrigatórios" }, { status: 400 });
   }
 
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", email)
-    .single();
+  const adminSupabase = createAdminClient();
 
-  if (existing) {
-    return NextResponse.json({ error: "Usuário já cadastrado" }, { status: 400 });
+  const { data: existingUsers } = await adminSupabase.auth.admin.listUsers();
+  const alreadyExists = existingUsers?.users?.some(
+    (u) => u.email?.toLowerCase() === email.toLowerCase()
+  );
+  if (alreadyExists) {
+    return NextResponse.json({ error: "Usuário já cadastrado com esse email" }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from("invites")
-    .upsert({ email, role, invited_by: user.id }, { onConflict: "email" });
+  const tempPassword = crypto.randomBytes(6).toString("base64url");
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
+    email,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { full_name: full_name || email.split("@")[0] },
+  });
+
+  if (createError || !newUser.user) {
+    return NextResponse.json(
+      { error: createError?.message || "Erro ao criar usuário" },
+      { status: 500 }
+    );
+  }
+
+  const { error: profileError } = await adminSupabase
+    .from("profiles")
+    .upsert({
+      id: newUser.user.id,
+      email,
+      full_name: full_name || email.split("@")[0],
+      role,
+      status: "ativo",
+    });
+
+  if (profileError) {
+    await adminSupabase.auth.admin.deleteUser(newUser.user.id);
+    return NextResponse.json({ error: "Erro ao criar perfil" }, { status: 500 });
+  }
+
+  const origin = new URL(request.url).origin;
+  const loginUrl = `${origin}/login`;
+
+  try {
+    await sendInviteEmail(email, role, tempPassword, loginUrl);
+  } catch {
+    // User was created but email failed — don't rollback, just warn
+    return NextResponse.json({
+      ok: true,
+      warning: "Usuário criado, mas o email não foi enviado. Informe a senha manualmente.",
+      tempPassword,
+    });
   }
 
   return NextResponse.json({ ok: true });
