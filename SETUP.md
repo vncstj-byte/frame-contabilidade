@@ -65,13 +65,12 @@ Acessa em http://localhost:3000
 
 ### 4. Deploy para producao
 
+O deploy e **automatico**: cada push na branch `main` do GitHub dispara um build na Vercel.
+
+Para deploy manual (se necessario):
 ```bash
 vercel --prod
 ```
-
-**IMPORTANTE:** O deploy NAO e automatico pelo GitHub. Precisa rodar `vercel --prod` manualmente apos cada mudanca.
-
-Para configurar deploy automatico: Vercel > Settings > Git > conectar ao repo GitHub.
 
 ---
 
