@@ -4,6 +4,21 @@ import { authenticateRequest, requireAdmin } from "@/lib/api-auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 
+const CLIENT_FIELDS = [
+  "nome_empresa", "cnpj", "rua", "numero", "complemento", "bairro",
+  "cidade", "estado", "cep", "nome_socio", "cpf_socio", "tipo_contrato",
+  "valor_contrato", "prazo_contrato", "data_inicio_contrato",
+  "data_termino_contrato", "contrato_url", "user_id",
+] as const;
+
+function pickClientFields(body: Record<string, unknown>) {
+  const result: Record<string, unknown> = {};
+  for (const key of CLIENT_FIELDS) {
+    if (key in body) result[key] = body[key];
+  }
+  return result;
+}
+
 export async function GET() {
   const auth = await authenticateRequest();
   if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
@@ -24,8 +39,9 @@ export async function POST(request: NextRequest) {
   if (!requireAdmin(auth)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   const body = await request.json();
+  const allowed = pickClientFields(body);
   const supabase = await createClient();
-  const { data, error } = await supabase.from("clients").insert(body).select().single();
+  const { data, error } = await supabase.from("clients").insert(allowed).select().single();
 
   if (error) return NextResponse.json({ error: "Erro ao criar cliente" }, { status: 500 });
   audit({ userId: auth.userId, userEmail: auth.profile.email, action: "create", resource: "clients", resourceId: data?.id, details: { nome_empresa: body.nome_empresa }, ip: request.headers.get("x-forwarded-for") ?? undefined });
@@ -38,9 +54,10 @@ export async function PUT(request: NextRequest) {
   if (!requireAdmin(auth)) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   const body = await request.json();
-  const { id, ...updates } = body;
+  const { id } = body;
   if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
 
+  const updates = pickClientFields(body);
   const supabase = await createClient();
   const { data, error } = await supabase.from("clients").update(updates).eq("id", id).select().single();
 

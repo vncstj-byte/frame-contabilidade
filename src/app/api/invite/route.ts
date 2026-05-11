@@ -1,38 +1,32 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { authenticateRequest, requireAdmin } from "@/lib/api-auth";
 import { sendInviteEmail } from "@/lib/email";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin" && profile?.role !== "gestor") {
-    return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-  }
+  const auth = await authenticateRequest();
+  if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
+  if (!requireAdmin(auth)) return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
 
   const { email, role, full_name } = await request.json();
   if (!email || !role) {
     return NextResponse.json({ error: "Email e role são obrigatórios" }, { status: 400 });
   }
 
+  const validRoles = ["admin", "gestor", "cliente"];
+  if (!validRoles.includes(role)) {
+    return NextResponse.json({ error: "Role inválido" }, { status: 400 });
+  }
+
   const adminSupabase = createAdminClient();
 
-  const { data: existingUsers } = await adminSupabase.auth.admin.listUsers();
-  const alreadyExists = existingUsers?.users?.some(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
-  if (alreadyExists) {
+  const { data: existing } = await adminSupabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
+  if (existing) {
     return NextResponse.json({ error: "Usuário já cadastrado com esse email" }, { status: 400 });
   }
 
