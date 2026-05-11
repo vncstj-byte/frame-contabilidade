@@ -98,17 +98,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <AppContext.Provider value={{ profile, selectedPeriod, setSelectedPeriod, selectedClient, setSelectedClient, clients }}>
       <div className="min-h-screen bg-background">
-        {/* Top: Logo + Contrato */}
-        <div className="px-14 flex items-center justify-between">
+        {/* Top: Logo + Contrato + Sair */}
+        <div className="px-4 md:px-14 pt-4 md:pt-0 flex flex-col md:flex-row items-center justify-between gap-2">
           <Image
             src="/logo-frame.png"
             alt="FRAME"
             width={300}
             height={108}
-            className="object-contain shrink-0 -mt-8 -mb-12 -ml-[4.5rem]"
+            className="object-contain shrink-0 md:-mt-8 md:-mb-12 md:-ml-[4.5rem] w-[180px] md:w-[300px]"
             priority
           />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {profile.role === "cliente" && (
               <button
                 onClick={async () => {
@@ -120,23 +120,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     alert("Nenhum contrato disponível.");
                   }
                 }}
-                className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-card hover:text-foreground transition-colors"
+                className="text-[12px] md:text-[13px] text-muted-foreground border border-border rounded-lg px-3 md:px-5 py-1.5 md:py-2 hover:bg-card hover:text-foreground transition-colors"
               >
                 Contrato
               </button>
             )}
             <a
               href="/api/auth/logout"
-              className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-2"
+              className="text-[12px] md:text-[13px] text-muted-foreground border border-border rounded-lg px-3 md:px-5 py-1.5 md:py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-1.5"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4" />
               Sair
             </a>
           </div>
         </div>
 
-        {/* Nav strip centered */}
-        <div className="flex items-center justify-end gap-2 px-14 pb-3 flex-wrap">
+        {/* Nav strip */}
+        <div className="flex items-center justify-center md:justify-end gap-2 px-4 md:px-14 pb-3 flex-wrap">
           <span className="text-muted-foreground/70 text-[13px] mr-2 hidden lg:inline border border-border/50 rounded-full px-4 py-2">FRAME – Contabilidade para Advogados</span>
 
           {navItems.filter((n) => n.visible).map((item) => {
@@ -145,14 +145,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-2 text-[13px] font-medium rounded-full px-4 py-2 border transition-all duration-200 ${
+                className={`flex items-center gap-1.5 text-[12px] md:text-[13px] font-medium rounded-full px-3 md:px-4 py-1.5 md:py-2 border transition-all duration-200 ${
                   active
                     ? "bg-card border-border text-foreground"
                     : "border-border/50 text-muted-foreground hover:text-foreground hover:bg-card/50"
                 }`}
               >
                 <item.icon className="w-4 h-4" />
-                {item.label}
+                <span className="hidden sm:inline">{item.label}</span>
               </Link>
             );
           })}
@@ -161,7 +161,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => { setPeriodOpen(!periodOpen); setClientOpen(false); setUserOpen(false); }}
-              className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground rounded-full px-4 py-2 border border-border/50 hover:bg-card/50 transition-all duration-200"
+              className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-muted-foreground hover:text-foreground rounded-full px-3 md:px-4 py-1.5 md:py-2 border border-border/50 hover:bg-card/50 transition-all duration-200"
             >
               {formatYearMonth(selectedPeriod)}
               <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform duration-200 ${periodOpen ? "rotate-180" : ""}`} />
@@ -201,14 +201,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {profile.role === "admin" && (
             <Link
               href="/admin/panel"
-              className={`flex items-center gap-1.5 text-[13px] font-medium rounded-full px-4 py-2 border transition-all duration-200 ${
+              className={`flex items-center gap-1.5 text-[12px] md:text-[13px] font-medium rounded-full px-3 md:px-4 py-1.5 md:py-2 border transition-all duration-200 ${
                 pathname === "/admin/panel"
                   ? "bg-card border-border text-foreground"
                   : "border-border/50 text-muted-foreground hover:text-foreground hover:bg-card/50"
               }`}
             >
               <Shield className="w-3.5 h-3.5" />
-              Admin
+              <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
 
@@ -217,9 +217,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => { setClientOpen(!clientOpen); setPeriodOpen(false); setUserOpen(false); }}
-                className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground rounded-full px-4 py-2 border border-border/50 hover:bg-card/50 transition-all duration-200"
+                className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-muted-foreground hover:text-foreground rounded-full px-3 md:px-4 py-1.5 md:py-2 border border-border/50 hover:bg-card/50 transition-all duration-200"
               >
-                {selectedClient === "all" ? "Todos os Clientes" : (selectedClientData?.nome_empresa ?? "").slice(0, 20)}
+                <span className="truncate max-w-[100px] md:max-w-none">{selectedClient === "all" ? "Todos os Clientes" : (selectedClientData?.nome_empresa ?? "").slice(0, 20)}</span>
                 <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform duration-200 ${clientOpen ? "rotate-180" : ""}`} />
               </button>
               {clientOpen && (
@@ -252,8 +252,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         </div>
 
-        {/* Content - full width */}
-        <main className="px-14 pb-4">
+        {/* Content */}
+        <main className="px-4 md:px-14 pb-4">
           {children}
         </main>
       </div>
