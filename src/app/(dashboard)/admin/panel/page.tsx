@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "../../layout";
-import { formatCurrency, parsePeriodMonths, getCurrentYearMonth, getGroupedPeriodOptions, formatYearMonth } from "@/lib/constants";
+import { formatCurrency, formatCNPJ, formatCPF, formatCEP, parsePeriodMonths, getCurrentYearMonth, getGroupedPeriodOptions, formatYearMonth } from "@/lib/constants";
 import type { Profile, Client, FinancialEntry } from "@/types/database";
-import { Users, UserPlus, Mail, Trash2, Shield, Edit2, ChevronDown, Plus, Power, X, Check } from "lucide-react";
+import { Users, UserPlus, Mail, Trash2, Shield, Edit2, ChevronDown, Plus, Power, X, Check, FileUp, FileText } from "lucide-react";
+
+const ESTADOS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS",
+  "MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC",
+  "SP","SE","TO",
+];
 
 const emptyClientForm = {
-  nome_empresa: "", cnpj: "", endereco: "", nome_socio: "", cpf_socio: "",
+  nome_empresa: "", cnpj: "", rua: "", numero: "", complemento: "",
+  bairro: "", cidade: "", estado: "", cep: "",
+  nome_socio: "", cpf_socio: "",
   tipo_contrato: "Mensal", valor_contrato: "", prazo_contrato: "",
   data_inicio_contrato: new Date().toISOString().slice(0, 10),
   data_termino_contrato: "", user_email: "",
@@ -33,6 +42,9 @@ export default function AdminPanelPage() {
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [clientForm, setClientForm] = useState({ ...emptyClientForm });
   const [confirmDeleteClient, setConfirmDeleteClient] = useState<string | null>(null);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
   const year = new Date().getFullYear();
   const periodOptions = getGroupedPeriodOptions(year);
@@ -131,17 +143,24 @@ export default function AdminPanelPage() {
     setEditingClientId(c.id);
     setClientForm({
       nome_empresa: c.nome_empresa,
-      cnpj: c.cnpj ?? "",
-      endereco: c.endereco ?? "",
+      cnpj: c.cnpj ? formatCNPJ(c.cnpj) : "",
+      rua: c.rua ?? "",
+      numero: c.numero ?? "",
+      complemento: c.complemento ?? "",
+      bairro: c.bairro ?? "",
+      cidade: c.cidade ?? "",
+      estado: c.estado ?? "",
+      cep: c.cep ? formatCEP(c.cep) : "",
       nome_socio: c.nome_socio ?? "",
-      cpf_socio: c.cpf_socio ?? "",
+      cpf_socio: c.cpf_socio ? formatCPF(c.cpf_socio) : "",
       tipo_contrato: c.tipo_contrato ?? "Mensal",
       valor_contrato: c.valor_contrato ? String(c.valor_contrato) : "",
       prazo_contrato: c.prazo_contrato ?? "",
       data_inicio_contrato: c.data_inicio_contrato ?? "",
       data_termino_contrato: c.data_termino_contrato ?? "",
-      user_email: "",
+      user_email: c.user_id ?? "",
     });
+    setContractFile(null);
     setClientFormOpen(true);
   }
 
@@ -153,18 +172,36 @@ export default function AdminPanelPage() {
 
   async function handleSaveClient(e: React.FormEvent) {
     e.preventDefault();
-    const payload = {
+    const payload: Record<string, unknown> = {
       nome_empresa: clientForm.nome_empresa,
-      cnpj: clientForm.cnpj || null,
-      endereco: clientForm.endereco || null,
+      cnpj: clientForm.cnpj.replace(/\D/g, "") || null,
+      rua: clientForm.rua || null,
+      numero: clientForm.numero || null,
+      complemento: clientForm.complemento || null,
+      bairro: clientForm.bairro || null,
+      cidade: clientForm.cidade || null,
+      estado: clientForm.estado || null,
+      cep: clientForm.cep.replace(/\D/g, "") || null,
       nome_socio: clientForm.nome_socio || null,
-      cpf_socio: clientForm.cpf_socio || null,
+      cpf_socio: clientForm.cpf_socio.replace(/\D/g, "") || null,
       tipo_contrato: clientForm.tipo_contrato,
       valor_contrato: clientForm.valor_contrato ? Number(clientForm.valor_contrato) : null,
       prazo_contrato: clientForm.prazo_contrato || null,
       data_inicio_contrato: clientForm.data_inicio_contrato || null,
       data_termino_contrato: clientForm.data_termino_contrato || null,
+      user_id: clientForm.user_email || null,
     };
+
+    if (contractFile) {
+      const ext = contractFile.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("contracts")
+        .upload(fileName, contractFile);
+      if (!uploadError && uploadData) {
+        payload.contrato_url = uploadData.path;
+      }
+    }
 
     if (editingClientId) {
       await fetch("/api/clients", {
@@ -183,6 +220,7 @@ export default function AdminPanelPage() {
     setClientFormOpen(false);
     setEditingClientId(null);
     setClientForm({ ...emptyClientForm });
+    setContractFile(null);
     loadData();
   }
 
@@ -407,23 +445,86 @@ export default function AdminPanelPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input placeholder="Nome da Empresa *" value={clientForm.nome_empresa} onChange={(e) => setClientForm({ ...clientForm, nome_empresa: e.target.value })} required className={inputClass} />
-              <input placeholder="CNPJ" value={clientForm.cnpj} onChange={(e) => setClientForm({ ...clientForm, cnpj: e.target.value })} className={inputClass} />
-              <input placeholder="Endereço" value={clientForm.endereco} onChange={(e) => setClientForm({ ...clientForm, endereco: e.target.value })} className={`${inputClass} col-span-2`} />
+              <input placeholder="CNPJ" value={clientForm.cnpj} onChange={(e) => setClientForm({ ...clientForm, cnpj: formatCNPJ(e.target.value) })} maxLength={18} className={inputClass} />
               <input placeholder="Nome do Sócio" value={clientForm.nome_socio} onChange={(e) => setClientForm({ ...clientForm, nome_socio: e.target.value })} className={inputClass} />
-              <input placeholder="CPF do Sócio" value={clientForm.cpf_socio} onChange={(e) => setClientForm({ ...clientForm, cpf_socio: e.target.value })} className={inputClass} />
-              <select value={clientForm.tipo_contrato} onChange={(e) => setClientForm({ ...clientForm, tipo_contrato: e.target.value })} className={inputClass}>
-                <option value="Pack">Pack</option>
-                <option value="Mensal">Mensal</option>
-                <option value="Anual">Anual</option>
-              </select>
-              <input placeholder="Valor do Contrato (R$)" type="number" step="0.01" value={clientForm.valor_contrato} onChange={(e) => setClientForm({ ...clientForm, valor_contrato: e.target.value })} className={inputClass} />
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Data de Início</label>
-                <input type="date" value={clientForm.data_inicio_contrato} onChange={(e) => setClientForm({ ...clientForm, data_inicio_contrato: e.target.value })} className={`w-full ${inputClass}`} />
+              <input placeholder="CPF do Sócio" value={clientForm.cpf_socio} onChange={(e) => setClientForm({ ...clientForm, cpf_socio: formatCPF(e.target.value) })} maxLength={14} className={inputClass} />
+            </div>
+
+            <div className="border-t border-border/50 pt-4 mt-2">
+              <p className="text-xs text-muted-foreground font-medium tracking-wider mb-3">ENDEREÇO</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input placeholder="Rua / Logradouro" value={clientForm.rua} onChange={(e) => setClientForm({ ...clientForm, rua: e.target.value })} className={`${inputClass} md:col-span-2`} />
+                <input placeholder="Número" value={clientForm.numero} onChange={(e) => setClientForm({ ...clientForm, numero: e.target.value })} className={inputClass} />
+                <input placeholder="Complemento" value={clientForm.complemento} onChange={(e) => setClientForm({ ...clientForm, complemento: e.target.value })} className={inputClass} />
+                <input placeholder="Bairro" value={clientForm.bairro} onChange={(e) => setClientForm({ ...clientForm, bairro: e.target.value })} className={inputClass} />
+                <input placeholder="Cidade" value={clientForm.cidade} onChange={(e) => setClientForm({ ...clientForm, cidade: e.target.value })} className={inputClass} />
+                <select value={clientForm.estado} onChange={(e) => setClientForm({ ...clientForm, estado: e.target.value })} className={inputClass}>
+                  <option value="">UF</option>
+                  {ESTADOS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
+                <input placeholder="CEP" value={clientForm.cep} onChange={(e) => setClientForm({ ...clientForm, cep: formatCEP(e.target.value) })} maxLength={9} className={inputClass} />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Data de Término</label>
-                <input type="date" value={clientForm.data_termino_contrato} onChange={(e) => setClientForm({ ...clientForm, data_termino_contrato: e.target.value })} className={`w-full ${inputClass}`} />
+            </div>
+
+            <div className="border-t border-border/50 pt-4 mt-2">
+              <p className="text-xs text-muted-foreground font-medium tracking-wider mb-3">CONTRATO</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-xs text-muted-foreground mb-1 block">Vincular a Usuário</label>
+                  <select value={clientForm.user_email} onChange={(e) => setClientForm({ ...clientForm, user_email: e.target.value })} className={`w-full ${inputClass}`}>
+                    <option value="">Nenhum</option>
+                    {users.filter((u) => u.role === "cliente").map((u) => (
+                      <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <select value={clientForm.tipo_contrato} onChange={(e) => setClientForm({ ...clientForm, tipo_contrato: e.target.value })} className={inputClass}>
+                  <option value="Pack">Pack</option>
+                  <option value="Mensal">Mensal</option>
+                  <option value="Anual">Anual</option>
+                </select>
+                <input placeholder="Valor do Contrato (R$)" type="number" step="0.01" value={clientForm.valor_contrato} onChange={(e) => setClientForm({ ...clientForm, valor_contrato: e.target.value })} className={inputClass} />
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Data de Início</label>
+                  <input type="date" value={clientForm.data_inicio_contrato} onChange={(e) => setClientForm({ ...clientForm, data_inicio_contrato: e.target.value })} className={`w-full ${inputClass}`} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Data de Término</label>
+                  <input type="date" value={clientForm.data_termino_contrato} onChange={(e) => setClientForm({ ...clientForm, data_termino_contrato: e.target.value })} className={`w-full ${inputClass}`} />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
+                />
+                {contractFile ? (
+                  <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-lg px-4 py-3">
+                    <FileText className="w-5 h-5 text-primary shrink-0" />
+                    <span className="text-sm text-foreground truncate flex-1">{contractFile.name}</span>
+                    <button type="button" onClick={() => { setContractFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="text-muted-foreground hover:text-red-400 transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-border hover:border-primary/40 rounded-lg px-4 py-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <FileUp className="w-5 h-5" />
+                    <span className="text-sm">Anexar contrato (PDF ou Word)</span>
+                  </button>
+                )}
+                {editingClientId && allClients.find((c) => c.id === editingClientId)?.contrato_url && !contractFile && (
+                  <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Contrato já anexado. Envie um novo para substituir.
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 justify-end">

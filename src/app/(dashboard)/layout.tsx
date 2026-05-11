@@ -109,9 +109,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             priority
           />
           <div className="flex items-center gap-3">
-            <button className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-card hover:text-foreground transition-colors">
-              Contrato
-            </button>
+            {profile.role === "cliente" && (
+              <button
+                onClick={async () => {
+                  const res = await fetch("/api/contract");
+                  if (res.ok) {
+                    const { url } = await res.json();
+                    window.open(url, "_blank");
+                  } else {
+                    alert("Nenhum contrato disponível.");
+                  }
+                }}
+                className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-card hover:text-foreground transition-colors"
+              >
+                Contrato
+              </button>
+            )}
             <a
               href="/api/auth/logout"
               className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-2"
