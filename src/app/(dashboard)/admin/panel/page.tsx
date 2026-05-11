@@ -33,6 +33,7 @@ export default function AdminPanelPage() {
   const [inviteRole, setInviteRole] = useState("gestor");
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [userTab, setUserTab] = useState<"admin" | "clientes">("admin");
 
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editUserName, setEditUserName] = useState("");
@@ -309,59 +310,79 @@ export default function AdminPanelPage() {
 
       {/* Gestão de Usuários */}
       <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4 flex items-center gap-2">
-          <Users className="w-4 h-4" /> GESTÃO DE USUÁRIOS
-        </h3>
-
-        {/* Invite */}
-        <div className="flex gap-2 mb-2">
-          <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 flex-1">
-            <UserPlus className="w-4 h-4 text-primary" />
-            <input
-              type="email"
-              placeholder="email@exemplo.com"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-              className="flex-1 bg-transparent text-foreground text-sm py-3 outline-none placeholder:text-muted-foreground/40"
-            />
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-primary font-semibold text-sm tracking-wider flex items-center gap-2">
+            <Users className="w-4 h-4" /> GESTÃO DE USUÁRIOS
+          </h3>
+          <div className="flex bg-background border border-border rounded-lg p-0.5">
+            <button
+              onClick={() => setUserTab("admin")}
+              className={`text-xs font-medium px-4 py-1.5 rounded-md transition-colors ${userTab === "admin" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Administrativos ({users.filter((u) => u.role !== "cliente").length})
+            </button>
+            <button
+              onClick={() => setUserTab("clientes")}
+              className={`text-xs font-medium px-4 py-1.5 rounded-md transition-colors ${userTab === "clientes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Clientes ({users.filter((u) => u.role === "cliente").length})
+            </button>
           </div>
-          <select
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value)}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground"
-          >
-            <option value="admin">Admin</option>
-            <option value="gestor">Gestor</option>
-          </select>
-          <button
-            onClick={handleInvite}
-            disabled={inviteStatus === "enviando"}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-          >
-            <Mail className="w-4 h-4" /> Convidar
-          </button>
         </div>
-        {inviteStatus && inviteStatus !== "enviando" && (
-          <div className={`text-xs mb-4 whitespace-pre-line rounded-lg p-3 ${inviteStatus.includes("⚠") ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : inviteStatus.includes("Erro") ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-            {inviteStatus}
-          </div>
+
+        {/* Invite (só na aba admin) */}
+        {userTab === "admin" && (
+          <>
+            <div className="flex gap-2 mb-2">
+              <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 flex-1">
+                <UserPlus className="w-4 h-4 text-primary" />
+                <input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+                  className="flex-1 bg-transparent text-foreground text-sm py-3 outline-none placeholder:text-muted-foreground/40"
+                />
+              </div>
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground"
+              >
+                <option value="admin">Admin</option>
+                <option value="gestor">Gestor</option>
+              </select>
+              <button
+                onClick={handleInvite}
+                disabled={inviteStatus === "enviando"}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <Mail className="w-4 h-4" /> Convidar
+              </button>
+            </div>
+            {inviteStatus && inviteStatus !== "enviando" && (
+              <div className={`text-xs mb-4 whitespace-pre-line rounded-lg p-3 ${inviteStatus.includes("⚠") ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : inviteStatus.includes("Erro") ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+                {inviteStatus}
+              </div>
+            )}
+          </>
         )}
 
         {/* Users table */}
-        <table className="w-full text-sm mt-4">
+        <table className="w-full text-sm mt-2">
           <thead>
             <tr className="text-xs text-muted-foreground border-b border-border">
               <th className="text-left pb-3 font-medium">NOME</th>
               <th className="text-left pb-3 font-medium">EMAIL</th>
               <th className="text-left pb-3 font-medium">PERFIL</th>
-              <th className="text-left pb-3 font-medium">ALTERAR PERFIL</th>
+              {userTab === "admin" && <th className="text-left pb-3 font-medium">ALTERAR PERFIL</th>}
               <th className="text-left pb-3 font-medium">STATUS</th>
               <th className="text-left pb-3 font-medium">AÇÕES</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {users.filter((u) => userTab === "admin" ? u.role !== "cliente" : u.role === "cliente").map((u) => (
               <tr key={u.id} className="border-b border-border/30">
                 <td className="py-3 text-foreground">
                   {editingUser?.id === u.id ? (
@@ -384,24 +405,32 @@ export default function AdminPanelPage() {
                 <td className="py-3">
                   <span className="text-xs bg-primary/15 text-primary px-2 py-1 rounded-full capitalize">{u.role}</span>
                 </td>
+                {userTab === "admin" && (
+                  <td className="py-3">
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                      className="bg-background border border-border rounded text-sm text-muted-foreground px-2 py-1"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="gestor">Gestor</option>
+                      <option value="cliente">Cliente</option>
+                    </select>
+                  </td>
+                )}
                 <td className="py-3">
-                  <select
-                    value={u.role}
-                    onChange={(e) => handleChangeRole(u.id, e.target.value)}
-                    className="bg-background border border-border rounded text-sm text-muted-foreground px-2 py-1"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="gestor">Gestor</option>
-                    <option value="cliente">Cliente</option>
-                  </select>
-                </td>
-                <td className="py-3">
-                  <button
-                    onClick={() => handleToggleStatus(u.id, u.status)}
-                    className={`text-xs px-2 py-1 rounded-full cursor-pointer transition ${u.status === "ativo" ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
-                  >
-                    {u.status === "ativo" ? "Ativo" : "Inativo"}
-                  </button>
+                  {userTab === "clientes" ? (
+                    u.onboarding_complete
+                      ? <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">Cadastrado</span>
+                      : <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">Aguardando</span>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleStatus(u.id, u.status)}
+                      className={`text-xs px-2 py-1 rounded-full cursor-pointer transition ${u.status === "ativo" ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
+                    >
+                      {u.status === "ativo" ? "Ativo" : "Inativo"}
+                    </button>
+                  )}
                 </td>
                 <td className="py-3">
                   {confirmDeleteUser === u.id ? (
@@ -431,15 +460,11 @@ export default function AdminPanelPage() {
                 </td>
               </tr>
             ))}
+            {users.filter((u) => userTab === "admin" ? u.role !== "cliente" : u.role === "cliente").length === 0 && (
+              <tr><td colSpan={6} className="py-6 text-center text-muted-foreground text-sm">Nenhum usuário nesta categoria</td></tr>
+            )}
           </tbody>
         </table>
-
-        {/* Role descriptions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <RoleCard title="ADMIN" color="text-primary" items={["Acesso total ao sistema", "Convidar e gerenciar usuários", "Controle financeiro completo", "Gestão de clientes", "Configurações da plataforma"]} />
-          <RoleCard title="GESTOR" color="text-amber-600" items={["Cadastrar e editar clientes", "Lançar receitas e despesas", "Visualizar dashboard", "Acessar DRE", "Sem acesso ao painel Admin"]} />
-          <RoleCard title="CLIENTE" color="text-muted-foreground" items={["Visualizar seu dashboard", "Visualizar seu DRE", "Visualizar seus lançamentos", "Sem acesso ao Admin", "Sem acesso a outros clientes"]} />
-        </div>
       </div>
 
       {/* Gestão de Clientes */}
