@@ -87,10 +87,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const year = new Date().getFullYear();
   const periodOptions = getGroupedPeriodOptions(year);
 
-  const navItems = [
-    { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, visible: true },
-    { label: "DRE Tradicional", href: "/admin/dre", icon: FileSpreadsheet, visible: true },
-    { label: "Lançamentos", href: "/admin/entries", icon: Receipt, visible: isAdmin },
+  const navItems = isAdmin ? [
+    { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+    { label: "DRE Tradicional", href: "/admin/dre", icon: FileSpreadsheet },
+    { label: "Lançamentos", href: "/admin/entries", icon: Receipt },
+  ] : [
+    { label: "Dashboard", href: "/client", icon: LayoutDashboard },
+    { label: "DRE", href: "/client/dre", icon: FileSpreadsheet },
   ];
 
   const selectedClientData = clients.find((c) => c.id === selectedClient);
@@ -111,14 +114,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   alert("Nenhum contrato disponível.");
                 }
               }}
-              className="text-[10px] text-muted-foreground/70 px-2 py-1 hover:text-foreground transition-colors"
+              className="text-[10px] text-muted-foreground border border-border/60 rounded-full px-3 py-1 hover:bg-card hover:text-foreground transition-colors"
             >
               Contrato
             </button>
           )}
           <a
             href="/api/auth/logout"
-            className="text-[10px] text-muted-foreground/70 flex items-center gap-1 px-2 py-1 hover:text-destructive transition-colors"
+            className="text-[10px] text-muted-foreground border border-border/60 rounded-full px-3 py-1 flex items-center gap-1 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
           >
             <LogOut className="w-3 h-3" />
             Sair
@@ -166,7 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex items-center justify-center md:justify-end gap-2 px-4 md:px-14 pb-3 flex-wrap">
           <span className="text-muted-foreground/70 text-[13px] mr-2 hidden lg:inline border border-border/50 rounded-full px-4 py-2">FRAME – Contabilidade para Advogados</span>
 
-          {navItems.filter((n) => n.visible).map((item) => {
+          {navItems.map((item) => {
             const active = pathname === item.href;
             return (
               <Link
@@ -185,7 +188,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
 
           {/* Period */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div className="relative" onClick={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}>
             <button
               onClick={() => { setPeriodOpen(!periodOpen); setClientOpen(false); setUserOpen(false); }}
               className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-muted-foreground hover:text-foreground rounded-full px-3 md:px-4 py-1.5 md:py-2 border border-border/50 hover:bg-card/50 transition-all duration-200"
@@ -194,7 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <ChevronDown className={`w-3.5 h-3.5 opacity-50 transition-transform duration-200 ${periodOpen ? "rotate-180" : ""}`} />
             </button>
             {periodOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-popover border border-border/50 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto">
+              <div className="absolute right-0 md:right-0 left-0 md:left-auto top-full mt-2 w-56 bg-popover border border-border/50 rounded-xl shadow-2xl z-[60] max-h-80 overflow-y-auto">
                 <div className="p-1.5">
                   {periodOptions.months.map((opt) => (
                     <button

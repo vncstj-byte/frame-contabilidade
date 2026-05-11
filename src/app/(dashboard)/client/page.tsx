@@ -41,8 +41,8 @@ export default function ClientDashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <div>
-        <h2 className="text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground text-center md:text-left">Meu Financeiro</h2>
+      <div className="bg-card border border-border rounded-xl px-5 py-3 md:py-4 text-center md:text-left">
+        <h2 className="text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground">Meu Financeiro</h2>
       </div>
 
       {/* KPIs */}
@@ -63,7 +63,9 @@ export default function ClientDashboard() {
 
       {/* Saúde financeira */}
       <div>
-        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4 text-center md:text-left">SAÚDE FINANCEIRA</h3>
+        <div className="bg-card border border-border rounded-xl px-5 py-3 mb-4 text-center md:text-left">
+          <h3 className="text-primary font-semibold text-sm tracking-wider">SAÚDE FINANCEIRA</h3>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {gaugeItems.map((item) => {
             const ok = item.value <= item.target;
@@ -84,8 +86,11 @@ export default function ClientDashboard() {
       </div>
 
       {/* Lançamentos */}
-      <div className="bg-card border border-border rounded-xl p-4 md:p-6">
-        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4 text-center md:text-left">LANÇAMENTOS DO PERÍODO</h3>
+      <div>
+        <div className="bg-card border border-border rounded-xl px-5 py-3 mb-4 text-center md:text-left">
+          <h3 className="text-primary font-semibold text-sm tracking-wider">LANÇAMENTOS DO PERÍODO</h3>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-4 md:p-6">
         {entries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum lançamento neste período.</p>
         ) : (
@@ -118,6 +123,7 @@ export default function ClientDashboard() {
             </tbody>
           </table>
         )}
+        </div>
       </div>
     </div>
   );
