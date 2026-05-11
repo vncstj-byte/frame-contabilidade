@@ -47,11 +47,18 @@ Gabarito de percentuais ideais sobre receita bruta:
 - Impostos: 10% | Time: 35% | Estrutura: 10% | Marketing: 20% | Margem: 25%
 
 ## Variáveis de ambiente
-Criar `.env.local` com:
+Criar `.env.local` com (ver `.env.example`):
 ```
 NEXT_PUBLIC_SUPABASE_URL=<url do projeto supabase>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key do supabase>
+SUPABASE_SERVICE_ROLE_KEY=<service role key - NUNCA expor no client>
+RESEND_API_KEY=<api key do Resend - envio de emails>
 ```
+
+## Deploy
+Deploy via CLI: `vercel --prod` (não tem auto-deploy do GitHub).
+Env vars também configuradas na Vercel (Settings > Environment Variables).
+Documentação completa de setup em `SETUP.md`.
 
 ## Convenções
 - Idioma da interface: Português (BR)
