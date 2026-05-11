@@ -43,6 +43,7 @@ export default function AdminPanelPage() {
   const [clientForm, setClientForm] = useState({ ...emptyClientForm });
   const [confirmDeleteClient, setConfirmDeleteClient] = useState<string | null>(null);
   const [contractFile, setContractFile] = useState<File | null>(null);
+  const [savingClient, setSavingClient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -158,7 +159,7 @@ export default function AdminPanelPage() {
       prazo_contrato: c.prazo_contrato ?? "",
       data_inicio_contrato: c.data_inicio_contrato ?? "",
       data_termino_contrato: c.data_termino_contrato ?? "",
-      user_email: c.user_id ?? "",
+      user_email: users.find((u) => u.id === c.user_id)?.email ?? "",
     });
     setContractFile(null);
     setClientFormOpen(true);
@@ -172,6 +173,8 @@ export default function AdminPanelPage() {
 
   async function handleSaveClient(e: React.FormEvent) {
     e.preventDefault();
+    setSavingClient(true);
+
     const payload: Record<string, unknown> = {
       nome_empresa: clientForm.nome_empresa,
       cnpj: clientForm.cnpj.replace(/\D/g, "") || null,
@@ -189,8 +192,26 @@ export default function AdminPanelPage() {
       prazo_contrato: clientForm.prazo_contrato || null,
       data_inicio_contrato: clientForm.data_inicio_contrato || null,
       data_termino_contrato: clientForm.data_termino_contrato || null,
-      user_id: clientForm.user_email || null,
     };
+
+    if (clientForm.user_email) {
+      const existingUser = users.find((u) => u.email === clientForm.user_email);
+      if (existingUser) {
+        payload.user_id = existingUser.id;
+      } else {
+        const invRes = await fetch("/api/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: clientForm.user_email, role: "cliente", full_name: clientForm.nome_socio || clientForm.nome_empresa }),
+        });
+        const invData = await invRes.json().catch(() => ({}));
+        if (invRes.ok && invData.ok) {
+          const updatedUsers = await fetch("/api/profiles").then((r) => r.json()).then((d) => d.data ?? []);
+          const newUser = updatedUsers.find((u: Profile) => u.email === clientForm.user_email);
+          if (newUser) payload.user_id = newUser.id;
+        }
+      }
+    }
 
     if (contractFile) {
       const ext = contractFile.name.split(".").pop();
@@ -221,6 +242,7 @@ export default function AdminPanelPage() {
     setEditingClientId(null);
     setClientForm({ ...emptyClientForm });
     setContractFile(null);
+    setSavingClient(false);
     loadData();
   }
 
@@ -443,9 +465,10 @@ export default function AdminPanelPage() {
                 <X className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input placeholder="Nome da Empresa *" value={clientForm.nome_empresa} onChange={(e) => setClientForm({ ...clientForm, nome_empresa: e.target.value })} required className={inputClass} />
               <input placeholder="CNPJ" value={clientForm.cnpj} onChange={(e) => setClientForm({ ...clientForm, cnpj: formatCNPJ(e.target.value) })} maxLength={18} className={inputClass} />
+              <input placeholder="Email do Cliente" type="email" value={clientForm.user_email} onChange={(e) => setClientForm({ ...clientForm, user_email: e.target.value })} className={inputClass} />
               <input placeholder="Nome do Sócio" value={clientForm.nome_socio} onChange={(e) => setClientForm({ ...clientForm, nome_socio: e.target.value })} className={inputClass} />
               <input placeholder="CPF do Sócio" value={clientForm.cpf_socio} onChange={(e) => setClientForm({ ...clientForm, cpf_socio: formatCPF(e.target.value) })} maxLength={14} className={inputClass} />
             </div>
@@ -469,15 +492,6 @@ export default function AdminPanelPage() {
             <div className="border-t border-border/50 pt-4 mt-2">
               <p className="text-xs text-muted-foreground font-medium tracking-wider mb-3">CONTRATO</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="text-xs text-muted-foreground mb-1 block">Vincular a Usuário</label>
-                  <select value={clientForm.user_email} onChange={(e) => setClientForm({ ...clientForm, user_email: e.target.value })} className={`w-full ${inputClass}`}>
-                    <option value="">Nenhum</option>
-                    {users.filter((u) => u.role === "cliente").map((u) => (
-                      <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>
-                    ))}
-                  </select>
-                </div>
                 <select value={clientForm.tipo_contrato} onChange={(e) => setClientForm({ ...clientForm, tipo_contrato: e.target.value })} className={inputClass}>
                   <option value="Pack">Pack</option>
                   <option value="Mensal">Mensal</option>
@@ -529,8 +543,8 @@ export default function AdminPanelPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => { setClientFormOpen(false); setEditingClientId(null); }} className="text-sm text-muted-foreground px-4 py-2 hover:text-foreground transition-colors">Cancelar</button>
-              <button type="submit" className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2 rounded-lg transition-colors">
-                {editingClientId ? "Salvar Alterações" : "Cadastrar"}
+              <button type="submit" disabled={savingClient} className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2 rounded-lg transition-colors disabled:opacity-50">
+                {savingClient ? "Salvando..." : editingClientId ? "Salvar Alterações" : "Cadastrar"}
               </button>
             </div>
           </form>
@@ -545,7 +559,7 @@ export default function AdminPanelPage() {
               <th className="text-left pb-3 font-medium">TIPO</th>
               <th className="text-left pb-3 font-medium">VALOR</th>
               <th className="text-left pb-3 font-medium">INÍCIO</th>
-              <th className="text-left pb-3 font-medium">TÉRMINO</th>
+              <th className="text-left pb-3 font-medium">ACESSO</th>
               <th className="text-left pb-3 font-medium">AÇÕES</th>
             </tr>
           </thead>
@@ -562,7 +576,15 @@ export default function AdminPanelPage() {
                 </td>
                 <td className="py-3 text-foreground">{c.valor_contrato ? formatCurrency(c.valor_contrato) : "-"}</td>
                 <td className="py-3 text-muted-foreground">{c.data_inicio_contrato ? new Date(c.data_inicio_contrato).toLocaleDateString("pt-BR") : "-"}</td>
-                <td className="py-3 text-muted-foreground">{c.data_termino_contrato ? new Date(c.data_termino_contrato).toLocaleDateString("pt-BR") : "-"}</td>
+                <td className="py-3">
+                  {(() => {
+                    if (!c.user_id) return <span className="text-xs bg-zinc-500/20 text-zinc-400 px-2 py-1 rounded-full">Sem convite</span>;
+                    const linkedUser = users.find((u) => u.id === c.user_id);
+                    if (!linkedUser) return <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">Pendente</span>;
+                    if (!linkedUser.onboarding_complete) return <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">Aguardando cadastro</span>;
+                    return <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">Ativo</span>;
+                  })()}
+                </td>
                 <td className="py-3">
                   {confirmDeleteClient === c.id ? (
                     <div className="flex items-center gap-2">
