@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { authenticateRequest, requireAdmin } from "@/lib/api-auth";
 import { audit } from "@/lib/audit";
 
@@ -28,6 +29,8 @@ export async function PUT(request: NextRequest) {
   const updates: Record<string, string> = {};
   if (role) updates.role = role;
   if (status) updates.status = status;
+  if (body.full_name) updates.full_name = body.full_name;
+  if (body.email) updates.email = body.email;
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -40,4 +43,25 @@ export async function PUT(request: NextRequest) {
   if (error) return NextResponse.json({ error: "Erro ao atualizar" }, { status: 500 });
   audit({ userId: auth.userId, userEmail: auth.profile.email, action: "update", resource: "profiles", resourceId: id, details: updates, ip: request.headers.get("x-forwarded-for") ?? undefined });
   return NextResponse.json({ data });
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await authenticateRequest();
+  if (!auth.ok) return NextResponse.json({ error: auth.message }, { status: auth.status });
+  if (auth.profile.role !== "admin") return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
+
+  if (id === auth.userId) {
+    return NextResponse.json({ error: "Você não pode excluir a si mesmo" }, { status: 400 });
+  }
+
+  const adminSupabase = createAdminClient();
+  await adminSupabase.from("profiles").delete().eq("id", id);
+  await adminSupabase.auth.admin.deleteUser(id);
+
+  audit({ userId: auth.userId, userEmail: auth.profile.email, action: "delete", resource: "profiles", resourceId: id, ip: request.headers.get("x-forwarded-for") ?? undefined });
+  return NextResponse.json({ ok: true });
 }

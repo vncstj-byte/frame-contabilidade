@@ -9,7 +9,7 @@ function getResend() {
 export async function sendInviteEmail(to: string, role: string, tempPassword: string, loginUrl: string) {
   const roleLabel = role === "admin" ? "Administrador" : role === "gestor" ? "Gestor" : "Cliente";
 
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to,
     subject: "Seu acesso à Frame Contabilidade",
@@ -41,10 +41,12 @@ export async function sendInviteEmail(to: string, role: string, tempPassword: st
       </div>
     `,
   });
+
+  if (error) throw new Error(error.message);
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to,
     subject: "Recuperação de senha — Frame Contabilidade",
@@ -71,4 +73,6 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
       </div>
     `,
   });
+
+  if (error) throw new Error(error.message);
 }

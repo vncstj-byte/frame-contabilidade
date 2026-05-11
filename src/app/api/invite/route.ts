@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       full_name: full_name || email.split("@")[0],
       role,
       status: "ativo",
+      onboarding_complete: false,
     });
 
   if (profileError) {
@@ -72,14 +73,14 @@ export async function POST(request: Request) {
 
   try {
     await sendInviteEmail(email, role, tempPassword, loginUrl);
-  } catch {
-    // User was created but email failed — don't rollback, just warn
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro desconhecido";
     return NextResponse.json({
       ok: true,
-      warning: "Usuário criado, mas o email não foi enviado. Informe a senha manualmente.",
+      warning: `Usuário criado, mas o email falhou: ${message}`,
       tempPassword,
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, emailSent: true });
 }

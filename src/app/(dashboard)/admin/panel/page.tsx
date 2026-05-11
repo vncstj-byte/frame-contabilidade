@@ -25,6 +25,10 @@ export default function AdminPanelPage() {
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [periodOpen, setPeriodOpen] = useState(false);
 
+  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<string | null>(null);
+
   const [clientFormOpen, setClientFormOpen] = useState(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [clientForm, setClientForm] = useState({ ...emptyClientForm });
@@ -82,6 +86,23 @@ export default function AdminPanelPage() {
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus as Profile["status"] } : u));
   }
 
+  async function handleSaveUserName() {
+    if (!editingUser || !editUserName.trim()) return;
+    await fetch("/api/profiles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingUser.id, full_name: editUserName }),
+    });
+    setUsers((prev) => prev.map((u) => u.id === editingUser.id ? { ...u, full_name: editUserName } : u));
+    setEditingUser(null);
+  }
+
+  async function handleDeleteUser(id: string) {
+    await fetch(`/api/profiles?id=${id}`, { method: "DELETE" });
+    setConfirmDeleteUser(null);
+    loadData();
+  }
+
   async function handleInvite() {
     if (!inviteEmail.trim()) return;
     setInviteStatus("enviando");
@@ -90,15 +111,19 @@ export default function AdminPanelPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
     });
-    if (res.ok) {
-      setInviteStatus("Convite enviado!");
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      if (data.warning) {
+        setInviteStatus(`⚠ ${data.warning}\nSenha temporária: ${data.tempPassword}`);
+      } else {
+        setInviteStatus("✓ Convite enviado com sucesso!");
+      }
       setInviteEmail("");
-      setTimeout(() => setInviteStatus(null), 3000);
       loadData();
+      setTimeout(() => setInviteStatus(null), data.warning ? 15000 : 3000);
     } else {
-      const data = await res.json().catch(() => ({}));
       setInviteStatus(data.error || "Erro ao enviar convite");
-      setTimeout(() => setInviteStatus(null), 4000);
+      setTimeout(() => setInviteStatus(null), 5000);
     }
   }
 
@@ -258,7 +283,9 @@ export default function AdminPanelPage() {
           </button>
         </div>
         {inviteStatus && inviteStatus !== "enviando" && (
-          <p className={`text-xs mb-4 ${inviteStatus.includes("Erro") ? "text-red-400" : "text-emerald-400"}`}>{inviteStatus}</p>
+          <div className={`text-xs mb-4 whitespace-pre-line rounded-lg p-3 ${inviteStatus.includes("⚠") ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : inviteStatus.includes("Erro") ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+            {inviteStatus}
+          </div>
         )}
 
         {/* Users table */}
@@ -276,7 +303,23 @@ export default function AdminPanelPage() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="border-b border-border/30">
-                <td className="py-3 text-foreground">{u.full_name}</td>
+                <td className="py-3 text-foreground">
+                  {editingUser?.id === u.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={editUserName}
+                        onChange={(e) => setEditUserName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSaveUserName()}
+                        className="bg-background border border-border rounded px-2 py-1 text-sm text-foreground outline-none focus:border-primary/50 w-40"
+                        autoFocus
+                      />
+                      <button onClick={handleSaveUserName} className="text-emerald-400 hover:text-emerald-300"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setEditingUser(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                    </div>
+                  ) : (
+                    u.full_name
+                  )}
+                </td>
                 <td className="py-3 text-muted-foreground">{u.email}</td>
                 <td className="py-3">
                   <span className="text-xs bg-primary/15 text-primary px-2 py-1 rounded-full capitalize">{u.role}</span>
@@ -301,13 +344,30 @@ export default function AdminPanelPage() {
                   </button>
                 </td>
                 <td className="py-3">
-                  <button
-                    onClick={() => handleToggleStatus(u.id, u.status)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                    title={u.status === "ativo" ? "Desativar" : "Reativar"}
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
+                  {confirmDeleteUser === u.id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-red-400">Excluir?</span>
+                      <button onClick={() => handleDeleteUser(u.id)} className="text-red-400 hover:text-red-300"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => setConfirmDeleteUser(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setEditingUser(u); setEditUserName(u.full_name); }}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        title="Editar nome"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteUser(u.id)}
+                        className="text-muted-foreground hover:text-red-400 transition-colors"
+                        title="Excluir usuário"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

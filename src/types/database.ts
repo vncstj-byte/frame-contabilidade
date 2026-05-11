@@ -16,6 +16,8 @@ export interface Profile {
   role: UserRole;
   fee_mensal: number | null;
   status: UserStatus;
+  cpf: string | null;
+  onboarding_complete: boolean;
   data_vencimento: string | null;
   created_at: string;
 }
