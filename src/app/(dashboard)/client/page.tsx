@@ -40,40 +40,40 @@ export default function ClientDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
-        <h2 className="text-2xl font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground">Meu Financeiro</h2>
+        <h2 className="text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] tracking-tight text-foreground text-center md:text-left">Meu Financeiro</h2>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold tracking-wider">RECEITAS</span>
-          <p className="text-2xl font-bold font-[family-name:var(--font-heading)] text-emerald-400 mt-2">{formatCurrency(dre.receitaBruta)}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+          <span className="text-[10px] md:text-xs text-muted-foreground font-semibold tracking-wider">RECEITAS</span>
+          <p className="text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] text-emerald-400 mt-1 md:mt-2">{formatCurrency(dre.receitaBruta)}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold tracking-wider">DESPESAS</span>
-          <p className="text-2xl font-bold font-[family-name:var(--font-heading)] text-red-400 mt-2">{formatCurrency(dre.totalCustos)}</p>
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+          <span className="text-[10px] md:text-xs text-muted-foreground font-semibold tracking-wider">DESPESAS</span>
+          <p className="text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] text-red-400 mt-1 md:mt-2">{formatCurrency(dre.totalCustos)}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <span className="text-xs text-muted-foreground font-semibold tracking-wider">RESULTADO</span>
-          <p className={`text-2xl font-bold font-[family-name:var(--font-heading)] mt-2 ${dre.ebitda >= 0 ? "text-emerald-400" : "text-red-400"}`}>{formatCurrency(dre.ebitda)}</p>
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+          <span className="text-[10px] md:text-xs text-muted-foreground font-semibold tracking-wider">RESULTADO</span>
+          <p className={`text-lg md:text-2xl font-bold font-[family-name:var(--font-heading)] mt-1 md:mt-2 ${dre.ebitda >= 0 ? "text-emerald-400" : "text-red-400"}`}>{formatCurrency(dre.ebitda)}</p>
         </div>
       </div>
 
       {/* Saúde financeira */}
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="text-primary font-semibold text-sm tracking-wider mb-6">SAÚDE FINANCEIRA</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div>
+        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4 text-center md:text-left">SAÚDE FINANCEIRA</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {gaugeItems.map((item) => {
             const ok = item.value <= item.target;
             return (
-              <div key={item.label} className="flex flex-col items-center">
-                <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center mb-3 ${ok ? "border-emerald-500/40" : "border-red-500/40"}`}>
-                  <span className={`text-lg font-bold ${ok ? "text-emerald-400" : "text-red-400"}`}>{formatPercent(item.value)}</span>
+              <div key={item.label} className="bg-card border border-border rounded-xl p-4 flex flex-col items-center">
+                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full border-4 flex items-center justify-center mb-2 md:mb-3 ${ok ? "border-emerald-500/40" : "border-red-500/40"}`}>
+                  <span className={`text-sm md:text-lg font-bold ${ok ? "text-emerald-400" : "text-red-400"}`}>{formatPercent(item.value)}</span>
                 </div>
-                <span className="text-sm text-foreground font-medium">{item.label}</span>
-                <span className={`text-xs mt-1 flex items-center gap-1 ${ok ? "text-emerald-400" : "text-red-400"}`}>
+                <span className="text-xs md:text-sm text-foreground font-medium">{item.label}</span>
+                <span className={`text-[10px] md:text-xs mt-1 flex items-center gap-1 ${ok ? "text-emerald-400" : "text-red-400"}`}>
                   {ok ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                   {ok ? "Dentro do gabarito" : "Acima"}
                 </span>
@@ -84,8 +84,8 @@ export default function ClientDashboard() {
       </div>
 
       {/* Lançamentos */}
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4">LANÇAMENTOS DO PERÍODO</h3>
+      <div className="bg-card border border-border rounded-xl p-4 md:p-6">
+        <h3 className="text-primary font-semibold text-sm tracking-wider mb-4 text-center md:text-left">LANÇAMENTOS DO PERÍODO</h3>
         {entries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum lançamento neste período.</p>
         ) : (

@@ -98,17 +98,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <AppContext.Provider value={{ profile, selectedPeriod, setSelectedPeriod, selectedClient, setSelectedClient, clients }}>
       <div className="min-h-screen bg-background">
-        {/* Top: Logo + Contrato + Sair */}
-        <div className="px-4 md:px-14 pt-4 md:pt-0 flex flex-col md:flex-row items-center justify-between gap-2">
+        {/* Mobile: Sair + Contrato no topo direito */}
+        <div className="flex md:hidden justify-end items-center gap-2 px-4 pt-3">
+          {profile.role === "cliente" && (
+            <button
+              onClick={async () => {
+                const res = await fetch("/api/contract");
+                if (res.ok) {
+                  const { url } = await res.json();
+                  window.open(url, "_blank");
+                } else {
+                  alert("Nenhum contrato disponível.");
+                }
+              }}
+              className="text-[10px] text-muted-foreground/70 px-2 py-1 hover:text-foreground transition-colors"
+            >
+              Contrato
+            </button>
+          )}
+          <a
+            href="/api/auth/logout"
+            className="text-[10px] text-muted-foreground/70 flex items-center gap-1 px-2 py-1 hover:text-destructive transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            Sair
+          </a>
+        </div>
+
+        {/* Logo + botões desktop */}
+        <div className="px-4 md:px-14 flex flex-col md:flex-row items-center justify-between">
           <Image
             src="/logo-frame.png"
             alt="FRAME"
             width={300}
             height={108}
-            className="object-contain shrink-0 md:-mt-8 md:-mb-12 md:-ml-[4.5rem] w-[180px] md:w-[300px]"
+            className="object-contain shrink-0 md:-mt-8 md:-mb-12 md:-ml-[4.5rem] w-[250px] md:w-[300px]"
             priority
           />
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-3">
             {profile.role === "cliente" && (
               <button
                 onClick={async () => {
@@ -120,16 +147,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     alert("Nenhum contrato disponível.");
                   }
                 }}
-                className="text-[12px] md:text-[13px] text-muted-foreground border border-border rounded-lg px-3 md:px-5 py-1.5 md:py-2 hover:bg-card hover:text-foreground transition-colors"
+                className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-card hover:text-foreground transition-colors"
               >
                 Contrato
               </button>
             )}
             <a
               href="/api/auth/logout"
-              className="text-[12px] md:text-[13px] text-muted-foreground border border-border rounded-lg px-3 md:px-5 py-1.5 md:py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-1.5"
+              className="text-[13px] text-muted-foreground border border-border rounded-lg px-5 py-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors flex items-center gap-2"
             >
-              <LogOut className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <LogOut className="w-4 h-4" />
               Sair
             </a>
           </div>
